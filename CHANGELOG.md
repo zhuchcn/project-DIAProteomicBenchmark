@@ -7,6 +7,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## 2025-12-21
+
+- Add command Convert2MzML to convert raw SWATH data to mzML.
+
 ## 2025-12-20
 
 - Set up repo
