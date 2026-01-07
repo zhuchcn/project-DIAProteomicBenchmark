@@ -71,6 +71,8 @@ def _download_van_puyvelde_2022():
         assay='DIA'
     )
 
+    output_dir /= 'Raw'
+
     # SHA512 checksum file
     checksum_file = output_dir / "SHA512SUMS.txt"
 
