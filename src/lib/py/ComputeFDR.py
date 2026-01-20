@@ -25,16 +25,16 @@ from Common import (
     setup_logger
 )
 
-_PROG_NAME = 'ComputeFDRRefactor'
-_HELP = 'Refactored ComputeFDR pipeline (new helper-based UX).'
+_PROG_NAME = 'ComputeFDR'
+_HELP = 'Calculate FDR from pepXML search outputs.'
 _DESCRIPTION = (
-    'Load every pepXML file in a directory, compute peptide/protein FDRs, '
-    'and store the resulting identifications to an idXML file.'
+    'Load every pepXML file in a directory, compute FDRs via pyOpenMS FalseDiscoveryRate, '
+    'and store the resulting identifications in an idXML file.'
 )
 LOGGER = setup_logger(_PROG_NAME)
 
 
-class ComputeFDRRefactor(SubCommand):
+class ComputeFDR(SubCommand):
     PROG_NAME = _PROG_NAME
     HELP = _HELP
     DESCRIPTION = _DESCRIPTION
