@@ -40,8 +40,7 @@ class RunFragPipe(SubCommand):
             'type': Path,
             'required': True,
             'help': (
-                'Manifest describing the mzML inputs. Required columns: ' +
-                ', '.join(MANIFEST_COLUMNS)
+                'Manifest describing the mzML inputs.'
             )
         },
         '--config-tools-folder': {
@@ -137,7 +136,7 @@ def _read_manifest(manifest_path: Path) -> list[Path]:
             mzml_value = line.strip().split('\t')[0]
             mzml_path = Path(mzml_value).expanduser()
             if not mzml_path.exists():
-                raise FileNotFoundError(f'MZML file not found for sample {sample_id}: {mzml_path}')
+                raise FileNotFoundError(f'MZML file not found: {mzml_path}')
             paths.append(mzml_path.resolve())
         if not paths:
             raise ValueError('Manifest does not contain any entries.')

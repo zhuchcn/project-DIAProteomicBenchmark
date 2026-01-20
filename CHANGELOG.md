@@ -7,6 +7,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## 2025-01-20
+
+- Add CombineFasta, PhilosopherFilter, and ComputeFDR.
+
 ## 2026-01-07
 
 - Add script PhilosopherDatabase and RunFragPipe

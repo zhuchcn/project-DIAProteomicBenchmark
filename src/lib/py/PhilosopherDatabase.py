@@ -57,7 +57,6 @@ class PhilosopherDatabase(SubCommand):
 			[
 				str(PHILOSOPHER_EXE),
 				'database',
-				'--contam',
 				'--custom',
 				str(fasta_path),
 			],

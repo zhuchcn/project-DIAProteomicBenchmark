@@ -19,9 +19,9 @@ assert PROJ_DIR is not None, "Please set PROJ_DIR in your environment variables.
 PROJ_DIR = Path(PROJ_DIR)
 
 # ---- FragPipe constants --------------------------------------------------
-FRAGPIPE_DOCKER_IMAGE = "fcyucn/fragpipe:23.1"
-FRAGPIPE_EXE = Path("/fragpipe_bin/fragpipe-23.1/fragpipe-23.1/bin/fragpipe")
-PHILOSOPHER_EXE = Path("/fragpipe_bin/fragpipe-23.1/fragpipe-23.1/tools/Philosopher/philosopher-v5.1.2")
+FRAGPIPE_DOCKER_IMAGE = "fcyucn/fragpipe:23.0"
+FRAGPIPE_EXE = Path("/fragpipe_bin/fragpipe-23.0/fragpipe-23.0/bin/fragpipe")
+PHILOSOPHER_EXE = Path("/fragpipe_bin/fragpipe-23.0/fragpipe-23.0/tools/Philosopher/philosopher-v5.1.1")
 
 # ---- Files and Directories ----
 def get_dataset_dir(dataset_name: str, molecule: str, assay: str) -> Path:

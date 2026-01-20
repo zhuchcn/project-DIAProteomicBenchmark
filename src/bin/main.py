@@ -1,6 +1,7 @@
 """ Main """
 from __future__ import annotations
 import argparse
+import subprocess
 import sys
 from pathlib import Path
 import dotenv
@@ -24,6 +25,11 @@ from subcommands import SUBCOMMANDS
 def parse_args():
     """ parse args """
     p = argparse.ArgumentParser()
+    p.add_argument(
+        '--shutdown',
+        action='store_true',
+        help='Attempt to shut the host down after running the command to save compute time.',
+    )
     sp = p.add_subparsers()
 
     for command in SUBCOMMANDS:
@@ -39,9 +45,25 @@ def parse_args():
 
     return p.parse_args()
 
+def _shutdown_host():
+    """Run the platform shutdown command, ignoring failures."""
+    try:
+        subprocess.run(['sudo', 'shutdown', 'now'], check=True)
+    except OSError:
+        print('Shutdown request failed; please run shutdown manually (needs root).', file=sys.stderr)
+
+
 def main():
     args = parse_args()
-    args.func(args)
+    shutdown_requested = args.shutdown
+    try:
+        args.func(args)
+    except KeyboardInterrupt:
+        shutdown_requested = False
+        raise
+    finally:
+        if shutdown_requested:
+            _shutdown_host()
 
 if __name__ == '__main__':
     main()
