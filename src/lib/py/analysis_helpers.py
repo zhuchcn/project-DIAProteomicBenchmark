@@ -7,6 +7,7 @@ import pandas as pd
 import seaborn as sns
 from matplotlib import pyplot as plt
 from pyopenms import (
+    PepXMLFile,
     PeptideIdentificationList,
     IdXMLFile,
     ProteinIdentification,
@@ -18,6 +19,7 @@ from pyopenms import (
 
 if TYPE_CHECKING:
     from pathlib import Path
+    from typing import Iterable
 
 TIER_LABEL_MAP = {
     -1: "Contam",
@@ -35,47 +37,75 @@ DEFAULT_TIER_TO_INDIVIDUAL_SAMPLE = {
 DEFAULT_TIER_ORDER = ["Ecoli", "Yeast", "Human"]
 DEFAULT_STATUS_ORDER = ["individual_only", "mixture_only", "both"]
 
-class IdXMLData:
-    def __init__(self, path:Path):
-        self.path = path
+class IdData:
+    def __init__(self, paths:Iterable[Path], type:str = 'idXML'):
+        assert type in ('idXML', 'pepXML'), "type must be either 'idXML' or 'pepXML'"
+        self.paths = paths
+        self.type = type
         self._protein_ids: list[ProteinIdentification] = None
         self._peptide_ids: PeptideIdentificationList = None
 
     @property
     def protein_ids(self) -> list[ProteinIdentification]:
         if self._protein_ids is None:
-            self._load_idxml()
+            self._load()
         return self._protein_ids
 
     @property
     def peptide_ids(self) -> PeptideIdentificationList:
         if self._peptide_ids is None:
-            self._load_idxml()
+            self._load()
         return self._peptide_ids
 
-    def _load_idxml(self):
+    def _load(self):
         protein_ids = []
         peptide_ids = PeptideIdentificationList()
-        IdXMLFile().load(str(self.path), protein_ids, peptide_ids)
+        for path in self.paths:
+            prot_ids = []
+            pept_ids = PeptideIdentificationList()
+            if self.type == 'idXML':
+                IdXMLFile().load(str(path), prot_ids, pept_ids)
+            else:
+                PepXMLFile().load(str(path), prot_ids, pept_ids)
+            protein_ids.extend(prot_ids)
+            for pept_id in pept_ids:
+                peptide_ids.push_back(pept_id)
         self._protein_ids = protein_ids
         self._peptide_ids = peptide_ids
 
-    def tidy_peptide_id(self, remove_contam:bool = True, remove_decoy: bool = True
-            ) -> pd.DataFrame:
-        data = {
-            'Spectrum Reference': [],
-            'RT': [],
-            'Observed M/Z': [],
-            'Tier': [],
-            'Peptide': [],
-            'Modified Peptide': [],
-            'Unimod Peptide': [],
-            'Charge': [],
-            'Qvalue': [],
-            'Probability': [],
-            'Hyperscore': [],
-            'Nextscore': []
-        }
+    def tidy_peptide_id(self, remove_contam:bool = True, remove_decoy: bool = True,
+            score_type='Qvalue') -> pd.DataFrame:
+        if self.type == 'idXML':
+            data = {
+                'Spectrum Reference': [],
+                'RT': [],
+                'Observed M/Z': [],
+                'Tier': [],
+                'Peptide': [],
+                'Modified Peptide': [],
+                'Unimod Peptide': [],
+                'Charge': [],
+                score_type: [],
+                'Probability': [],
+                'Hyperscore': [],
+                'Nextscore': []
+            }
+        else:
+            data = {
+                'Spectrum Reference': [],
+                'RT': [],
+                'Observed M/Z': [],
+                'Tier': [],
+                'Peptide': [],
+                'Modified Peptide': [],
+                'Unimod Peptide': [],
+                'Charge': [],
+                score_type: [],
+                'Hyperscore': [],
+                'Nextscore': []
+            }
+        if remove_decoy == False:
+            data['Decoy'] = []
         pep_id:PeptideIdentification
         for pep_id in self.peptide_ids:
             hits:list[PeptideHit] = pep_id.getHits()
@@ -100,10 +130,23 @@ class IdXMLData:
             data['Modified Peptide'].append(seq.toString())
             data['Unimod Peptide'].append(seq.toUniModString())
             data['Charge'].append(hit.getCharge())
-            data['Qvalue'].append(hit.getScore())
-            data['Probability'].append(hit.getMetaValue('PeptideProphet probability_score'))
+            if self.type == 'idXML':
+                data[score_type].append(hit.getScore())
+                data['Probability'].append(hit.getMetaValue('PeptideProphet probability_score'))
+            else:
+                data[score_type].append(hit.getScore())
             data['Hyperscore'].append(hit.getMetaValue('hyperscore'))
             data['Nextscore'].append(hit.getMetaValue('nextscore'))
+            if remove_decoy == False:
+                if hit.metaValueExists('target_decoy'):
+                    is_decoy = hit.getMetaValue('target_decoy') == 'decoy'
+                else:
+                    is_decoy = False
+                    for evidence in hit.getPeptideEvidences():
+                        if evidence.getProteinAccession().startswith('rev_'):
+                            is_decoy = True
+                            break
+                data['Decoy'].append(is_decoy)
         return pd.DataFrame(data)
 
     def tidy_protein_groups(self, acc_2_tier, remove_contam: bool = True,
@@ -143,6 +186,8 @@ class FragPipeResults:
         self._diann_report = None
         self._split_fdr = None
         self._group_fdr = None
+        self._raw_pepxml = None
+        self._interact_pepxml = None
 
     @property
     def psm(self):
@@ -173,7 +218,7 @@ class FragPipeResults:
         if self._split_fdr is None:
             base_name = self.base_dir.name
             path = self.base_dir/f'{base_name}.idXML'
-            self._split_fdr = IdXMLData(path)
+            self._split_fdr = IdData([path], 'idXML')
         return self._split_fdr
 
     @property
@@ -181,8 +226,22 @@ class FragPipeResults:
         if self._group_fdr is None:
             base_name = self.base_dir.name
             path = self.base_dir/f'{base_name}_global_fdr.idXML'
-            self._group_fdr = IdXMLData(path)
+            self._group_fdr = IdData([path], 'idXML')
         return self._group_fdr
+
+    @property
+    def raw_pepxml(self):
+        if self._raw_pepxml is None:
+            paths = list(self.base_dir.glob('*.pepXML'))
+            self._raw_pepxml = IdData(paths, 'pepXML')
+        return self._raw_pepxml
+
+    @property
+    def interact_pepxml(self):
+        if self._interact_pepxml is None:
+            paths = list(self.base_dir.glob('interact-*.pep.xml'))
+            self._interact_pepxml = IdData(paths, 'pepXML')
+        return self._interact_pepxml
 
 def prepare_acc_2_tier_mapping(database_path:Path) -> dict[str, str]:
     acc_2_tier = {}

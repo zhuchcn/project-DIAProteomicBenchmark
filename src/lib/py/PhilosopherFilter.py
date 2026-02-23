@@ -36,7 +36,7 @@ class PhilosopherFilter(SubCommand):
         },
         '--protxml': {
             'type': Path,
-            'required': True,
+            'required': False,
             'help': 'Path to the philosopher protXML output that accompanies the pepXML.',
         },
         '--pep': {
@@ -89,7 +89,8 @@ class PhilosopherFilter(SubCommand):
     @staticmethod
     def func(args):
         pepxml_path = resolve_directory(args.pepxml, 'pepXML file')
-        protxml_path = resolve_file(args.protxml, 'protXML file')
+        if args.protxml is not None:
+            protxml_path = resolve_file(args.protxml, 'protXML file')
         work_dir_input = args.work_dir
         work_dir = resolve_directory(work_dir_input, 'working directory')
         database = resolve_file(args.database, 'FASTA database file')
@@ -115,12 +116,15 @@ class PhilosopherFilter(SubCommand):
             '--prefix', args.tag
         ])
 
-        filter_cmd = shlex.join([
+        filter_args = [
             str(PHILOSOPHER_EXE),
             'filter',
             '--picked',
-            '--pep', str(args.pep),
-            '--prot', str(args.prot),
+            '--pep', str(args.pep)
+        ]
+        if args.protxml is not None:
+            filter_args.extend(['--prot', str(args.prot)])
+        filter_args.extend([
             '--psm', str(args.psm),
             '--ion', str(args.ion),
             '--minPepLen', str(args.min_pep_len),
@@ -130,6 +134,7 @@ class PhilosopherFilter(SubCommand):
             '--protxml', str(protxml_path),
             '--razor',
         ])
+        filter_cmd = shlex.join(filter_args)
         report_cmd = shlex.join([
             str(PHILOSOPHER_EXE),
             'report',
