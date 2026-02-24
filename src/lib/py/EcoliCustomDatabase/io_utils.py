@@ -5,8 +5,10 @@ import argparse
 import shlex
 import shutil
 import subprocess as sp
+from pathlib import Path
 
 from EcoliCustomDatabase.constants import DEFAULT_CONDA_ENV
+from Common import build_docker_run_cmd, collect_mount_points
 
 
 def add_conda_env_arg(parser: argparse.ArgumentParser) -> None:
@@ -53,3 +55,18 @@ def require_tool(tool_name: str, conda_env: str | None) -> None:
         return
     if shutil.which(tool_name) is None:
         raise FileNotFoundError(f'Required tool not found on PATH: {tool_name}')
+
+
+def run_docker_cmd(
+    image: str,
+    command: list[str],
+    work_dir: Path | None = None,
+    mount_paths: list[Path] | None = None,
+):
+    """Run a command inside Docker with host paths mounted 1:1."""
+    if shutil.which('docker') is None:
+        raise FileNotFoundError('Docker executable not found on PATH.')
+    mounts = collect_mount_points(*(mount_paths or []))
+    cmd = build_docker_run_cmd(image=image, mount_points=mounts, work_dir=work_dir)
+    cmd.extend(command)
+    return sp.run(cmd, check=True), cmd

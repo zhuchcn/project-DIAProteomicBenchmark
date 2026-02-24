@@ -14,6 +14,7 @@ from EcoliCustomDatabase import (
     cmd_call_variant,
     cmd_call_variant_bcftools,
     cmd_download_sra,
+    cmd_format_variant_fasta,
     cmd_install_vep_cache,
     cmd_parse_vep,
 )
@@ -28,6 +29,7 @@ from EcoliCustomDatabase.constants import (
     SUBCOMMAND_CALL_VARIANT,
     SUBCOMMAND_CALL_VARIANT_BCFTOOLS,
     SUBCOMMAND_DOWNLOAD_SRA,
+    SUBCOMMAND_FORMAT_VARIANT_FASTA,
     SUBCOMMAND_INSTALL_VEP_CACHE,
     SUBCOMMAND_PARSE_VEP,
     SUBCOMMANDS,
@@ -45,6 +47,7 @@ SUBCOMMAND_HELP = {
     SUBCOMMAND_ALIGN_BWA_MEM2: 'Align reads to reference genome with bwa-mem2.',
     SUBCOMMAND_CALL_VARIANT_BCFTOOLS: 'Call and filter variants using bcftools.',
     SUBCOMMAND_INSTALL_VEP_CACHE: 'Install VEP cache for E. coli.',
+    SUBCOMMAND_FORMAT_VARIANT_FASTA: 'Format variant FASTA headers for proteomics search engines.',
 }
 
 SUBCOMMAND_BUILDERS = {
@@ -57,6 +60,7 @@ SUBCOMMAND_BUILDERS = {
     SUBCOMMAND_ALIGN_BWA_MEM2: cmd_align_bwa_mem2.build_parser,
     SUBCOMMAND_CALL_VARIANT_BCFTOOLS: cmd_call_variant_bcftools.build_parser,
     SUBCOMMAND_INSTALL_VEP_CACHE: cmd_install_vep_cache.build_parser,
+    SUBCOMMAND_FORMAT_VARIANT_FASTA: cmd_format_variant_fasta.build_parser,
 }
 
 SUBCOMMAND_RUNNERS = {
@@ -69,6 +73,7 @@ SUBCOMMAND_RUNNERS = {
     SUBCOMMAND_ALIGN_BWA_MEM2: cmd_align_bwa_mem2.run,
     SUBCOMMAND_CALL_VARIANT_BCFTOOLS: cmd_call_variant_bcftools.run,
     SUBCOMMAND_INSTALL_VEP_CACHE: cmd_install_vep_cache.run,
+    SUBCOMMAND_FORMAT_VARIANT_FASTA: cmd_format_variant_fasta.run,
 }
 
 

@@ -2,20 +2,18 @@
 
 from __future__ import annotations
 import argparse
-import os
 from pathlib import Path
 import shlex
-import subprocess as sp
-import sys
 
 from Common import setup_logger
 from EcoliCustomDatabase.constants import (
     DEFAULT_CODON_TABLE,
     DEFAULT_GVF_OUTPUT,
+    DEFAULT_MOPEPGEN_DOCKER_IMAGE,
     DEFAULT_MOPEPGEN_INDEX_DIR,
-    DEFAULT_MOPEPGEN_REPO,
     DEFAULT_VEP_OUTPUT_TSV,
 )
+from EcoliCustomDatabase.io_utils import run_docker_cmd
 
 
 LOGGER = setup_logger('EcoliCustomDatabase.ParseVEP')
@@ -49,19 +47,10 @@ def build_parser(parser: argparse.ArgumentParser) -> None:
         help=f'Codon table name for moPepGen parseVEP (default: {DEFAULT_CODON_TABLE}).',
     )
     parser.add_argument(
-        '--mopepgen-repo',
-        type=Path,
-        default=DEFAULT_MOPEPGEN_REPO,
-        help=(
-            'Path to local moPepGen source repository used via PYTHONPATH '
-            f'(default: {DEFAULT_MOPEPGEN_REPO}).'
-        ),
-    )
-    parser.add_argument(
-        '--python-exe',
-        type=Path,
-        default=Path(sys.executable),
-        help='Python executable used to run `python -m moPepGen.cli`.',
+        '--docker-image',
+        type=str,
+        default=DEFAULT_MOPEPGEN_DOCKER_IMAGE,
+        help=f'Docker image providing moPepGen CLI (default: {DEFAULT_MOPEPGEN_DOCKER_IMAGE}).',
     )
 
 
@@ -70,13 +59,9 @@ def run(args: argparse.Namespace) -> None:
     input_tsv = _validate_input_file(args.input_tsv, 'VEP TSV')
     output_gvf = _prepare_output_path(args.output_gvf)
     index_dir = _validate_directory(args.index_dir, 'moPepGen index directory')
-    mopepgen_repo = _validate_directory(args.mopepgen_repo, 'moPepGen repository')
-    python_exe = _validate_input_file(args.python_exe, 'python executable')
 
     cmd = [
-        str(python_exe),
-        '-m',
-        'moPepGen.cli',
+        'moPepGen',
         'parseVEP',
         '-i',
         str(input_tsv),
@@ -90,15 +75,15 @@ def run(args: argparse.Namespace) -> None:
         args.codon_table,
     ]
 
-    env = os.environ.copy()
-    existing_pythonpath = env.get('PYTHONPATH')
-    env['PYTHONPATH'] = (
-        f'{mopepgen_repo}:{existing_pythonpath}' if existing_pythonpath else str(mopepgen_repo)
+    mount_paths = [input_tsv, output_gvf.parent, index_dir]
+    LOGGER.info('Running command in Docker: %s', shlex.join(cmd))
+    _, docker_cmd = run_docker_cmd(
+        image=args.docker_image,
+        command=cmd,
+        work_dir=output_gvf.parent,
+        mount_paths=mount_paths,
     )
-
-    LOGGER.info('Running command: %s', shlex.join(cmd))
-    LOGGER.info('Using moPepGen source from: %s', mopepgen_repo)
-    sp.run(cmd, check=True, env=env)
+    LOGGER.info('Docker command: %s', shlex.join(docker_cmd))
     LOGGER.info('Parsed VEP TSV to GVF: %s', output_gvf)
 
 
